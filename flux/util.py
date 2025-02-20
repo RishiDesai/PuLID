@@ -37,7 +37,7 @@ configs = {
         repo_id="black-forest-labs/FLUX.1-dev",
         repo_flow="flux1-dev.safetensors",
         repo_ae="ae.safetensors",
-        ckpt_path='models/flux1-dev.safetensors',
+        ckpt_path='/workspace/huggingface_cache/flux1-dev.safetensors',
         params=FluxParams(
             in_channels=64,
             vec_in_dim=768,
@@ -52,7 +52,7 @@ configs = {
             qkv_bias=True,
             guidance_embed=True,
         ),
-        ae_path='models/ae.safetensors',
+        ae_path='/workspace/huggingface_cache/ae.safetensors',
         ae_params=AutoEncoderParams(
             resolution=256,
             in_channels=3,
@@ -121,7 +121,7 @@ def load_flow_model(name: str, device: str = "cuda", hf_download: bool = True):
         and configs[name].repo_flow is not None
         and hf_download
     ):
-        ckpt_path = hf_hub_download(configs[name].repo_id, configs[name].repo_flow, local_dir='models')
+        ckpt_path = hf_hub_download(configs[name].repo_id, configs[name].repo_flow, cache_dir='/workspace/huggingface_cache')
 
     with torch.device(device):
         model = Flux(configs[name].params).to(torch.bfloat16)
@@ -138,13 +138,13 @@ def load_flow_model(name: str, device: str = "cuda", hf_download: bool = True):
 def load_flow_model_quintized(name: str, device: str = "cuda", hf_download: bool = True):
     # Loading Flux
     print("Init model")
-    ckpt_path = 'models/flux-dev-fp8.safetensors'
+    ckpt_path = '/workspace/huggingface_cache/flux-dev-fp8.safetensors'
     if (
         not os.path.exists(ckpt_path)
         and hf_download
     ):
-        ckpt_path = hf_hub_download("XLabs-AI/flux-dev-fp8", "flux-dev-fp8.safetensors")
-    json_path = hf_hub_download("XLabs-AI/flux-dev-fp8", 'flux_dev_quantization_map.json')
+        ckpt_path = hf_hub_download("XLabs-AI/flux-dev-fp8", "flux-dev-fp8.safetensors", cache_dir='/workspace/huggingface_cache')
+    json_path = hf_hub_download("XLabs-AI/flux-dev-fp8", 'flux_dev_quantization_map.json', cache_dir='/workspace/huggingface_cache')
 
     model = Flux(configs[name].params).to(torch.bfloat16)
 
@@ -177,7 +177,7 @@ def load_ae(name: str, device: str = "cuda", hf_download: bool = True) -> AutoEn
         and configs[name].repo_ae is not None
         and hf_download
     ):
-        ckpt_path = hf_hub_download(configs[name].repo_id, configs[name].repo_ae, local_dir='models')
+        ckpt_path = hf_hub_download(configs[name].repo_id, configs[name].repo_ae, cache_dir='/workspace/huggingface_cache')
 
     # Loading the autoencoder
     print("Init AE")

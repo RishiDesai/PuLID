@@ -15,7 +15,7 @@ from torchvision.transforms.functional import normalize, resize
 from eva_clip import create_model_and_transforms
 from eva_clip.constants import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
 from pulid.encoders_transformer import IDFormer, PerceiverAttentionCA
-from pulid.utils import img2tensor, tensor2img
+from pulid.utils import img2tensor, tensor2img, resize_numpy_image_long
 
 
 class PuLIDPipeline(nn.Module):
@@ -55,7 +55,7 @@ class PuLIDPipeline(nn.Module):
         self.face_helper.face_parse = None
         self.face_helper.face_parse = init_parsing_model(model_name='bisenet', device=self.device)
         # clip-vit backbone
-        model, _, _ = create_model_and_transforms('EVA02-CLIP-L-14-336', 'eva_clip', force_custom_clip=True)
+        model, _, _ = create_model_and_transforms('EVA02-CLIP-L-14-336', 'eva_clip', force_custom_clip=True, cache_dir='/workspace/huggingface_cache/')
         model = model.visual
         self.clip_vision_model = model.to(self.device, dtype=self.weight_dtype)
         eva_transform_mean = getattr(self.clip_vision_model, 'image_mean', OPENAI_DATASET_MEAN)
@@ -67,13 +67,14 @@ class PuLIDPipeline(nn.Module):
         self.eva_transform_mean = eva_transform_mean
         self.eva_transform_std = eva_transform_std
         # antelopev2
-        snapshot_download('DIAMONIK7777/antelopev2', local_dir='models/antelopev2')
+        # NOTE: fixed their bugged out zip file downloading/model loading code! :-(
+        snapshot_download('DIAMONIK7777/antelopev2', cache_dir='/workspace/huggingface_cache/')
         providers = ['CPUExecutionProvider'] if onnx_provider == 'cpu' \
             else ['CUDAExecutionProvider', 'CPUExecutionProvider']
-        self.app = FaceAnalysis(name='antelopev2', root='.', providers=providers)
+        self.app = FaceAnalysis(name='antelopev2/antelopev2', root='/workspace/huggingface_cache/models/antelopev2/', providers=providers)
         self.app.prepare(ctx_id=0, det_size=(640, 640))
-        self.handler_ante = insightface.model_zoo.get_model('models/antelopev2/glintr100.onnx',
-                                                            providers=providers)
+        self.handler_ante = insightface.model_zoo.get_model('/workspace/huggingface_cache/models/antelopev2/models/antelopev2/antelopev2/glintr100.onnx',
+                                                            providers=providers, root='/workspace/huggingface_cache/models/antelopev2/')
         self.handler_ante.prepare(ctx_id=0)
 
         gc.collect()
@@ -92,8 +93,8 @@ class PuLIDPipeline(nn.Module):
         self.pulid_encoder = self.pulid_encoder.to(device)
 
     def load_pretrain(self, pretrain_path=None, version='v0.9.0'):
-        hf_hub_download('guozinan/PuLID', f'pulid_flux_{version}.safetensors', local_dir='models')
-        ckpt_path = f'models/pulid_flux_{version}.safetensors'
+        # NOTE: fixed their inconvenient checkpoint code
+        ckpt_path = hf_hub_download('guozinan/PuLID', f'pulid_flux_{version}.safetensors', cache_dir='/workspace/huggingface_cache/')
         if pretrain_path is not None:
             ckpt_path = pretrain_path
         state_dict = load_file(ckpt_path)
