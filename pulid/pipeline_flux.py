@@ -23,24 +23,24 @@ class PuLIDPipeline(nn.Module):
         super().__init__()
         self.device = device
         self.weight_dtype = weight_dtype
-        double_interval = 2
-        single_interval = 4
+        self.double_interval = 2
+        self.single_interval = 4
 
         # init encoder
         self.pulid_encoder = IDFormer().to(self.device, self.weight_dtype)
 
-        num_ca = 19 // double_interval + 38 // single_interval
-        if 19 % double_interval != 0:
+        num_ca = 19 // self.double_interval + 38 // self.single_interval
+        if 19 % self.double_interval != 0:
             num_ca += 1
-        if 38 % single_interval != 0:
+        if 38 % self.single_interval != 0:
             num_ca += 1
         self.pulid_ca = nn.ModuleList([
             PerceiverAttentionCA().to(self.device, self.weight_dtype) for _ in range(num_ca)
         ])
 
         dit.pulid_ca = self.pulid_ca
-        dit.pulid_double_interval = double_interval
-        dit.pulid_single_interval = single_interval
+        dit.pulid_double_interval = self.double_interval
+        dit.pulid_single_interval = self.single_interval
 
         # preprocessors
         # face align and parsing
